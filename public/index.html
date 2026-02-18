@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ShopVerse | Full-Stack E-Commerce Demo</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">ShopVerse</div>
+      <div class="search-wrap">
+        <input id="searchInput" type="text" placeholder="Search products, brands and more" />
+        <button id="searchBtn">Search</button>
+      </div>
+      <button class="cart-btn" id="cartToggle">🛒 Cart (<span id="cartCount">0</span>)</button>
+    </header>
+
+    <section class="hero" id="hero"></section>
+
+    <section class="category-section">
+      <h2>Shop by Category</h2>
+      <div id="categories" class="categories"></div>
+    </section>
+
+    <main>
+      <section class="products-section">
+        <div class="products-header">
+          <h2>Featured Products</h2>
+          <select id="categoryFilter">
+            <option>All</option>
+          </select>
+        </div>
+        <div id="productsGrid" class="products-grid"></div>
+      </section>
+
+      <aside class="cart-panel" id="cartPanel">
+        <h3>Your Cart</h3>
+        <div id="cartItems"></div>
+        <p class="cart-total">Total: ₹<span id="cartTotal">0</span></p>
+      </aside>
+    </main>
+
+    <footer>
+      <p>Built as a full-stack practice project inspired by Flipkart & Amazon.</p>
+    </footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>
