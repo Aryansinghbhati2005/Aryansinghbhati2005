@@ -1,20 +1,20 @@
-# ShopVerse (Flipkart/Amazon Inspired Full-Stack Demo)
+# Mini Clash: Village Siege (Clash-inspired browser game)
 
-This project is a lightweight **full-stack e-commerce website** inspired by the core shopping flow of Flipkart and Amazon.
+This project is a lightweight **Clash of Clans-inspired strategy game** built with vanilla HTML/CSS/JavaScript and a tiny Node.js server.
 
-## Features
+## Gameplay features
 
-- Homepage hero banner and categories
-- Product listing with search + category filter
-- Add-to-cart and remove-from-cart flow
-- Live cart total updates
-- Backend REST APIs for home data, products, and cart
+- Build defensive towers on a tile-based village map
+- Manage resources: **Gold** and **Elixir**
+- Start raid waves where enemies march toward your base
+- Towers auto-attack enemies in range
+- Deploy troop abilities during active waves for burst damage
+- Earn trophies and bonus resources for clearing waves
 
 ## Tech Stack
 
-- **Backend:** Node.js HTTP server (no external dependencies)
 - **Frontend:** HTML, CSS, Vanilla JavaScript
-- **Data:** In-memory product and cart store
+- **Backend:** Node.js HTTP server for static file hosting
 
 ## Run locally
 
@@ -26,12 +26,7 @@ Then open:
 
 - `http://localhost:3000`
 
-## API Endpoints
+## Notes
 
-- `GET /api/home`
-- `GET /api/products?category=&q=`
-- `GET /api/cart`
-- `POST /api/cart` body: `{ "productId": number }`
-- `DELETE /api/cart/:productId`
-
-> Note: This is a starter/demo full-stack project. You can extend it with auth, payments, user accounts, and a real database.
+This is a simplified, original strategy game prototype inspired by the core loop of base-building + defense raids.
+You can extend it with multiplayer, building upgrades, persistent saves, spells, clans, and matchmaking.
