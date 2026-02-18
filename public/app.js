@@ -1,158 +1,230 @@
-const state = {
-  selectedCategory: 'All',
-  query: ''
-};
-
 const els = {
-  hero: document.getElementById('hero'),
-  categories: document.getElementById('categories'),
-  productsGrid: document.getElementById('productsGrid'),
-  cartItems: document.getElementById('cartItems'),
-  cartTotal: document.getElementById('cartTotal'),
-  cartCount: document.getElementById('cartCount'),
-  categoryFilter: document.getElementById('categoryFilter'),
-  searchInput: document.getElementById('searchInput'),
-  searchBtn: document.getElementById('searchBtn'),
-  cartToggle: document.getElementById('cartToggle'),
-  cartPanel: document.getElementById('cartPanel')
+  resourceGrid: document.getElementById('resourceGrid'),
+  villageSummary: document.getElementById('villageSummary'),
+  buildingsGrid: document.getElementById('buildingsGrid'),
+  troopsGrid: document.getElementById('troopsGrid'),
+  battleLog: document.getElementById('battleLog'),
+  raidBtn: document.getElementById('raidBtn'),
+  resetBtn: document.getElementById('resetBtn'),
+  toast: document.getElementById('toast')
 };
 
-async function loadHome() {
-  const res = await fetch('/api/home');
-  const data = await res.json();
+let state = null;
 
-  els.hero.innerHTML = `
-    <h1>${data.hero.title}</h1>
-    <p>${data.hero.subtitle}</p>
-    <button class="cart-btn">${data.hero.cta}</button>
-  `;
+function prettyName(key) {
+  return key
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, char => char.toUpperCase())
+    .trim();
+}
 
-  els.categories.innerHTML = '';
-  els.categoryFilter.innerHTML = '<option>All</option>';
+function formatNumber(value) {
+  return new Intl.NumberFormat('en-IN').format(Math.floor(value));
+}
 
-  data.categories.forEach(category => {
-    const pill = document.createElement('button');
-    pill.className = 'cat-pill';
-    pill.textContent = category;
-    pill.addEventListener('click', () => {
-      state.selectedCategory = category;
-      els.categoryFilter.value = category;
-      loadProducts();
+function showToast(message, type = 'ok') {
+  els.toast.textContent = message;
+  els.toast.className = `toast show ${type}`;
+  setTimeout(() => {
+    els.toast.classList.remove('show');
+  }, 2200);
+}
+
+function renderResources(resources, rates) {
+  const resourceTiles = [
+    {
+      name: 'Gold',
+      value: `${formatNumber(resources.gold)} / ${formatNumber(resources.goldCap)}`,
+      className: 'gold',
+      extra: `+${rates.gold}/sec`
+    },
+    {
+      name: 'Elixir',
+      value: `${formatNumber(resources.elixir)} / ${formatNumber(resources.elixirCap)}`,
+      className: 'elixir',
+      extra: `+${rates.elixir}/sec`
+    },
+    {
+      name: 'Gems',
+      value: formatNumber(resources.gems),
+      className: 'gems',
+      extra: 'Premium currency'
+    }
+  ];
+
+  els.resourceGrid.innerHTML = resourceTiles
+    .map(
+      tile => `
+      <div class="resource-tile">
+        <small>${tile.name}</small>
+        <div class="resource-value ${tile.className}">${tile.value}</div>
+        <small>${tile.extra}</small>
+      </div>
+    `
+    )
+    .join('');
+}
+
+function renderSummary(gameState) {
+  const stats = [
+    { label: 'Village', value: gameState.villageName },
+    { label: 'Power', value: formatNumber(gameState.derived.power) },
+    { label: 'Trophies', value: formatNumber(gameState.stats.trophies) },
+    { label: 'Wins', value: formatNumber(gameState.stats.wins) },
+    { label: 'Losses', value: formatNumber(gameState.stats.losses) },
+    { label: 'Total Attacks', value: formatNumber(gameState.stats.attacks) }
+  ];
+
+  els.villageSummary.innerHTML = stats
+    .map(
+      stat => `
+      <div class="stat-tile">
+        <small>${stat.label}</small>
+        <div>${stat.value}</div>
+      </div>
+    `
+    )
+    .join('');
+}
+
+function renderBuildings(gameState) {
+  const costs = gameState.derived.nextUpgradeCosts;
+
+  els.buildingsGrid.innerHTML = Object.entries(gameState.buildings)
+    .map(([name, level]) => {
+      const cost = costs[name];
+      const maxed = cost === null;
+      return `
+        <div class="entity">
+          <h3>${prettyName(name)}</h3>
+          <small>Level ${level}</small>
+          <small class="cost">${maxed ? 'Max level reached' : `Upgrade: ${formatNumber(cost)} gold`}</small>
+          <button class="small" data-upgrade="${name}" ${maxed ? 'disabled' : ''}>Upgrade</button>
+        </div>
+      `;
+    })
+    .join('');
+
+  document.querySelectorAll('[data-upgrade]').forEach(button => {
+    button.addEventListener('click', async () => {
+      const building = button.dataset.upgrade;
+      const result = await apiRequest('/api/game/upgrade', {
+        method: 'POST',
+        body: JSON.stringify({ building })
+      });
+
+      if (result.ok) {
+        showToast(`${prettyName(building)} upgraded!`, 'ok');
+        state = result.state;
+        render(state);
+      } else {
+        showToast(result.error || 'Upgrade failed', 'error');
+      }
     });
-    els.categories.appendChild(pill);
-
-    const option = document.createElement('option');
-    option.textContent = category;
-    els.categoryFilter.appendChild(option);
   });
 }
 
-function renderProducts(products) {
-  if (!products.length) {
-    els.productsGrid.innerHTML = '<p>No products matched your search.</p>';
-    return;
-  }
+function renderTroops(gameState) {
+  const troopTypes = ['barbarian', 'archer', 'giant'];
 
-  els.productsGrid.innerHTML = products
+  els.troopsGrid.innerHTML = troopTypes
     .map(
-      product => `
-      <article class="product-card">
-        <img src="${product.image}" alt="${product.name}" loading="lazy" />
-        <div class="product-body">
-          <span class="badge">${product.badge}</span>
-          <h4>${product.name}</h4>
-          <p>⭐ ${product.rating} • ${product.category}</p>
-          <div class="price">
-            <strong>₹${product.price}</strong>
-            <span class="old">₹${product.oldPrice}</span>
-          </div>
-          <button data-id="${product.id}">Add to Cart</button>
-        </div>
-      </article>
+      type => `
+      <div class="entity">
+        <h3>${prettyName(type)}</h3>
+        <small>Available: ${formatNumber(gameState.troops[type])}</small>
+        <small class="cost">Train 5 units</small>
+        <button class="small" data-train="${type}">Train (x5)</button>
+      </div>
     `
     )
     .join('');
 
-  document.querySelectorAll('.product-card button').forEach(button => {
+  document.querySelectorAll('[data-train]').forEach(button => {
     button.addEventListener('click', async () => {
-      await fetch('/api/cart', {
+      const type = button.dataset.train;
+      const result = await apiRequest('/api/game/train', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId: Number(button.dataset.id) })
+        body: JSON.stringify({ type, qty: 5 })
       });
-      loadCart();
+
+      if (result.ok) {
+        showToast(`Trained 5 ${prettyName(type)}s.`, 'ok');
+        state = result.state;
+        render(state);
+      } else {
+        showToast(result.error || 'Training failed', 'error');
+      }
     });
   });
 }
 
-async function loadProducts() {
-  const params = new URLSearchParams();
-  if (state.selectedCategory && state.selectedCategory !== 'All') {
-    params.set('category', state.selectedCategory);
-  }
-  if (state.query) {
-    params.set('q', state.query);
+function renderBattleLog(logs) {
+  if (!logs.length) {
+    els.battleLog.innerHTML = '<p class="muted">No battles yet. Launch a raid to start your legend.</p>';
+    return;
   }
 
-  const res = await fetch(`/api/products?${params.toString()}`);
-  const data = await res.json();
-  renderProducts(data.products);
-}
-
-async function loadCart() {
-  const res = await fetch('/api/cart');
-  const data = await res.json();
-
-  els.cartItems.innerHTML = data.items.length
-    ? data.items
-        .map(
-          item => `
-      <div class="cart-item">
-        <p><strong>${item.product.name}</strong></p>
-        <p>Qty: ${item.qty} × ₹${item.product.price}</p>
-        <button data-remove="${item.productId}">Remove</button>
+  els.battleLog.innerHTML = logs
+    .map(
+      log => `
+      <div class="log-entry">
+        <div>${log.message}</div>
+        <time>${new Date(log.at).toLocaleString()}</time>
       </div>
     `
-        )
-        .join('')
-    : '<p>Your cart is empty.</p>';
-
-  els.cartTotal.textContent = data.total;
-  const count = data.items.reduce((sum, item) => sum + item.qty, 0);
-  els.cartCount.textContent = count;
-
-  document.querySelectorAll('[data-remove]').forEach(button => {
-    button.addEventListener('click', async () => {
-      await fetch(`/api/cart/${button.dataset.remove}`, { method: 'DELETE' });
-      loadCart();
-    });
-  });
+    )
+    .join('');
 }
 
-els.categoryFilter.addEventListener('change', () => {
-  state.selectedCategory = els.categoryFilter.value;
-  loadProducts();
-});
+function render(gameState) {
+  renderResources(gameState.resources, gameState.derived.mineRatesPerSecond);
+  renderSummary(gameState);
+  renderBuildings(gameState);
+  renderTroops(gameState);
+  renderBattleLog(gameState.battleLog);
+}
 
-els.searchBtn.addEventListener('click', () => {
-  state.query = els.searchInput.value.trim();
-  loadProducts();
-});
+async function apiRequest(url, options = {}) {
+  const config = {
+    headers: { 'Content-Type': 'application/json' },
+    ...options
+  };
 
-els.searchInput.addEventListener('keydown', event => {
-  if (event.key === 'Enter') {
-    state.query = els.searchInput.value.trim();
-    loadProducts();
+  const res = await fetch(url, config);
+  return res.json();
+}
+
+async function loadGame() {
+  state = await apiRequest('/api/game');
+  render(state);
+}
+
+els.raidBtn.addEventListener('click', async () => {
+  const result = await apiRequest('/api/game/raid', { method: 'POST' });
+
+  if (!result.ok) {
+    showToast(result.error || 'Raid failed', 'error');
+    return;
+  }
+
+  state = result.state;
+  render(state);
+
+  const outcome = result.outcome;
+  if (outcome.won) {
+    showToast(`Victory! Looted ${outcome.loot.gold} gold and ${outcome.loot.elixir} elixir.`, 'ok');
+  } else {
+    showToast('Defeat! Your village suffered losses.', 'error');
   }
 });
 
-els.cartToggle.addEventListener('click', () => {
-  els.cartPanel.style.display = els.cartPanel.style.display === 'none' ? 'block' : 'none';
+els.resetBtn.addEventListener('click', async () => {
+  const result = await apiRequest('/api/game/reset', { method: 'POST' });
+  state = result.state;
+  render(state);
+  showToast('Village reset complete.', 'ok');
 });
 
-async function init() {
-  await loadHome();
-  await Promise.all([loadProducts(), loadCart()]);
-}
-
-init();
+loadGame();
+setInterval(loadGame, 5000);

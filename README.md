@@ -1,20 +1,18 @@
-# ShopVerse (Flipkart/Amazon Inspired Full-Stack Demo)
+# Kingdom Siege (Clash-of-Clans Inspired Browser Game)
 
-This project is a lightweight **full-stack e-commerce website** inspired by the core shopping flow of Flipkart and Amazon.
+This project is a lightweight full-stack strategy game inspired by the core loop of **Clash of Clans**:
 
-## Features
-
-- Homepage hero banner and categories
-- Product listing with search + category filter
-- Add-to-cart and remove-from-cart flow
-- Live cart total updates
-- Backend REST APIs for home data, products, and cart
+- Build and upgrade your village
+- Generate resources over time
+- Train troops
+- Raid AI enemy villages
+- Track trophies, wins, losses, and battle log
 
 ## Tech Stack
 
 - **Backend:** Node.js HTTP server (no external dependencies)
-- **Frontend:** HTML, CSS, Vanilla JavaScript
-- **Data:** In-memory product and cart store
+- **Frontend:** HTML + CSS + Vanilla JavaScript
+- **Data:** In-memory game state (single player)
 
 ## Run locally
 
@@ -22,16 +20,21 @@ This project is a lightweight **full-stack e-commerce website** inspired by the 
 node server.js
 ```
 
-Then open:
+Open: `http://localhost:3000`
 
-- `http://localhost:3000`
+## Game APIs
 
-## API Endpoints
+- `GET /api/game` – get current game state
+- `POST /api/game/reset` – reset the village
+- `POST /api/game/upgrade` body `{ "building": "goldMine" }`
+- `POST /api/game/train` body `{ "type": "barbarian", "qty": 5 }`
+- `POST /api/game/raid` – run a raid against an AI base
 
-- `GET /api/home`
-- `GET /api/products?category=&q=`
-- `GET /api/cart`
-- `POST /api/cart` body: `{ "productId": number }`
-- `DELETE /api/cart/:productId`
+## Notes
 
-> Note: This is a starter/demo full-stack project. You can extend it with auth, payments, user accounts, and a real database.
+- This is intentionally simple and single-player.
+- You can extend it with:
+  - persistent database storage
+  - authentication and multiple villages
+  - real-time multiplayer battles
+  - build timers and matchmaking
