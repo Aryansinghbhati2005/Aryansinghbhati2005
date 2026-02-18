@@ -3,47 +3,44 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ShopVerse | Full-Stack E-Commerce Demo</title>
+    <title>Mini Clash | Village Siege</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <header class="topbar">
-      <div class="brand">ShopVerse</div>
-      <div class="search-wrap">
-        <input id="searchInput" type="text" placeholder="Search products, brands and more" />
-        <button id="searchBtn">Search</button>
+      <div>
+        <h1>Mini Clash: Village Siege</h1>
+        <p class="subtitle">A lightweight Clash-style base defense + raid game in the browser.</p>
       </div>
-      <button class="cart-btn" id="cartToggle">🛒 Cart (<span id="cartCount">0</span>)</button>
+      <button id="startWaveBtn" class="action-btn">Start Raid Wave</button>
     </header>
 
-    <section class="hero" id="hero"></section>
-
-    <section class="category-section">
-      <h2>Shop by Category</h2>
-      <div id="categories" class="categories"></div>
+    <section class="hud" aria-label="Resources and status">
+      <div class="stat"><span>🏅 Trophies</span><strong id="trophies">0</strong></div>
+      <div class="stat"><span>💰 Gold</span><strong id="gold">350</strong></div>
+      <div class="stat"><span>🧪 Elixir</span><strong id="elixir">200</strong></div>
+      <div class="stat"><span>❤️ Base HP</span><strong id="baseHp">100</strong></div>
+      <div class="stat"><span>⚔️ Wave</span><strong id="wave">0</strong></div>
     </section>
 
     <main>
-      <section class="products-section">
-        <div class="products-header">
-          <h2>Featured Products</h2>
-          <select id="categoryFilter">
-            <option>All</option>
-          </select>
-        </div>
-        <div id="productsGrid" class="products-grid"></div>
+      <section class="controls" aria-label="Build and deploy controls">
+        <h2>Build Defenses</h2>
+        <div class="card-list" id="buildCards"></div>
+
+        <h2>Train Troops</h2>
+        <div class="card-list" id="troopCards"></div>
+
+        <h2>Battle Log</h2>
+        <ul id="logList" class="log-list"></ul>
       </section>
 
-      <aside class="cart-panel" id="cartPanel">
-        <h3>Your Cart</h3>
-        <div id="cartItems"></div>
-        <p class="cart-total">Total: ₹<span id="cartTotal">0</span></p>
-      </aside>
+      <section class="battlefield-wrap">
+        <h2>Your Village</h2>
+        <p class="help">Click an empty tile to build selected defense. During waves, your towers auto-attack and enemies march from right to left.</p>
+        <div id="battlefield" class="battlefield" role="grid" aria-label="Village battlefield"></div>
+      </section>
     </main>
-
-    <footer>
-      <p>Built as a full-stack practice project inspired by Flipkart & Amazon.</p>
-    </footer>
 
     <script src="app.js"></script>
   </body>
