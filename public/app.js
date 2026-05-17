@@ -1,158 +1,137 @@
-const state = {
-  selectedCategory: 'All',
-  query: ''
-};
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('score');
+const bestScoreEl = document.getElementById('bestScore');
+const statusEl = document.getElementById('status');
 
-const els = {
-  hero: document.getElementById('hero'),
-  categories: document.getElementById('categories'),
-  productsGrid: document.getElementById('productsGrid'),
-  cartItems: document.getElementById('cartItems'),
-  cartTotal: document.getElementById('cartTotal'),
-  cartCount: document.getElementById('cartCount'),
-  categoryFilter: document.getElementById('categoryFilter'),
-  searchInput: document.getElementById('searchInput'),
-  searchBtn: document.getElementById('searchBtn'),
-  cartToggle: document.getElementById('cartToggle'),
-  cartPanel: document.getElementById('cartPanel')
-};
+const tileCount = 20;
+const tileSize = canvas.width / tileCount;
 
-async function loadHome() {
-  const res = await fetch('/api/home');
-  const data = await res.json();
+let snake;
+let direction;
+let nextDirection;
+let food;
+let score;
+let gameOver;
+let started;
 
-  els.hero.innerHTML = `
-    <h1>${data.hero.title}</h1>
-    <p>${data.hero.subtitle}</p>
-    <button class="cart-btn">${data.hero.cta}</button>
-  `;
+const bestFromStorage = Number(localStorage.getItem('snakeBest') || 0);
+let bestScore = Number.isFinite(bestFromStorage) ? bestFromStorage : 0;
+bestScoreEl.textContent = String(bestScore);
 
-  els.categories.innerHTML = '';
-  els.categoryFilter.innerHTML = '<option>All</option>';
-
-  data.categories.forEach(category => {
-    const pill = document.createElement('button');
-    pill.className = 'cat-pill';
-    pill.textContent = category;
-    pill.addEventListener('click', () => {
-      state.selectedCategory = category;
-      els.categoryFilter.value = category;
-      loadProducts();
-    });
-    els.categories.appendChild(pill);
-
-    const option = document.createElement('option');
-    option.textContent = category;
-    els.categoryFilter.appendChild(option);
-  });
+function randomTile() {
+  return {
+    x: Math.floor(Math.random() * tileCount),
+    y: Math.floor(Math.random() * tileCount)
+  };
 }
 
-function renderProducts(products) {
-  if (!products.length) {
-    els.productsGrid.innerHTML = '<p>No products matched your search.</p>';
+function spawnFood() {
+  let pos = randomTile();
+  while (snake.some(part => part.x === pos.x && part.y === pos.y)) {
+    pos = randomTile();
+  }
+  return pos;
+}
+
+function resetGame() {
+  snake = [{ x: 10, y: 10 }];
+  direction = { x: 0, y: 0 };
+  nextDirection = { x: 0, y: 0 };
+  food = spawnFood();
+  score = 0;
+  gameOver = false;
+  started = false;
+  scoreEl.textContent = '0';
+  statusEl.textContent = 'Press any arrow key to start.';
+}
+
+function drawRect(x, y, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(x * tileSize + 1, y * tileSize + 1, tileSize - 2, tileSize - 2);
+}
+
+function draw() {
+  ctx.fillStyle = '#1f2937';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  drawRect(food.x, food.y, '#ef4444');
+  snake.forEach((part, index) => drawRect(part.x, part.y, index === 0 ? '#16a34a' : '#22c55e'));
+}
+
+function tick() {
+  if (!started || gameOver) {
+    draw();
     return;
   }
 
-  els.productsGrid.innerHTML = products
-    .map(
-      product => `
-      <article class="product-card">
-        <img src="${product.image}" alt="${product.name}" loading="lazy" />
-        <div class="product-body">
-          <span class="badge">${product.badge}</span>
-          <h4>${product.name}</h4>
-          <p>⭐ ${product.rating} • ${product.category}</p>
-          <div class="price">
-            <strong>₹${product.price}</strong>
-            <span class="old">₹${product.oldPrice}</span>
-          </div>
-          <button data-id="${product.id}">Add to Cart</button>
-        </div>
-      </article>
-    `
-    )
-    .join('');
+  direction = nextDirection;
 
-  document.querySelectorAll('.product-card button').forEach(button => {
-    button.addEventListener('click', async () => {
-      await fetch('/api/cart', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId: Number(button.dataset.id) })
-      });
-      loadCart();
-    });
-  });
-}
+  const head = {
+    x: (snake[0].x + direction.x + tileCount) % tileCount,
+    y: (snake[0].y + direction.y + tileCount) % tileCount
+  };
 
-async function loadProducts() {
-  const params = new URLSearchParams();
-  if (state.selectedCategory && state.selectedCategory !== 'All') {
-    params.set('category', state.selectedCategory);
-  }
-  if (state.query) {
-    params.set('q', state.query);
+  const hitSelf = snake.some(part => part.x === head.x && part.y === head.y);
+  if (hitSelf) {
+    gameOver = true;
+    statusEl.textContent = 'Game Over! Press Space to restart.';
+    if (score > bestScore) {
+      bestScore = score;
+      localStorage.setItem('snakeBest', String(bestScore));
+      bestScoreEl.textContent = String(bestScore);
+    }
+    draw();
+    return;
   }
 
-  const res = await fetch(`/api/products?${params.toString()}`);
-  const data = await res.json();
-  renderProducts(data.products);
+  snake.unshift(head);
+
+  if (head.x === food.x && head.y === food.y) {
+    score += 10;
+    scoreEl.textContent = String(score);
+    food = spawnFood();
+  } else {
+    snake.pop();
+  }
+
+  draw();
 }
 
-async function loadCart() {
-  const res = await fetch('/api/cart');
-  const data = await res.json();
+window.addEventListener('keydown', event => {
+  const keyMap = {
+    ArrowUp: { x: 0, y: -1 },
+    ArrowDown: { x: 0, y: 1 },
+    ArrowLeft: { x: -1, y: 0 },
+    ArrowRight: { x: 1, y: 0 },
+    w: { x: 0, y: -1 },
+    s: { x: 0, y: 1 },
+    a: { x: -1, y: 0 },
+    d: { x: 1, y: 0 }
+  };
 
-  els.cartItems.innerHTML = data.items.length
-    ? data.items
-        .map(
-          item => `
-      <div class="cart-item">
-        <p><strong>${item.product.name}</strong></p>
-        <p>Qty: ${item.qty} × ₹${item.product.price}</p>
-        <button data-remove="${item.productId}">Remove</button>
-      </div>
-    `
-        )
-        .join('')
-    : '<p>Your cart is empty.</p>';
+  if (event.code === 'Space' && gameOver) {
+    resetGame();
+    draw();
+    return;
+  }
 
-  els.cartTotal.textContent = data.total;
-  const count = data.items.reduce((sum, item) => sum + item.qty, 0);
-  els.cartCount.textContent = count;
+  const move = keyMap[event.key];
+  if (!move) {
+    return;
+  }
 
-  document.querySelectorAll('[data-remove]').forEach(button => {
-    button.addEventListener('click', async () => {
-      await fetch(`/api/cart/${button.dataset.remove}`, { method: 'DELETE' });
-      loadCart();
-    });
-  });
-}
+  if (!started) {
+    started = true;
+    statusEl.textContent = 'Collect food and avoid hitting yourself!';
+  }
 
-els.categoryFilter.addEventListener('change', () => {
-  state.selectedCategory = els.categoryFilter.value;
-  loadProducts();
-});
-
-els.searchBtn.addEventListener('click', () => {
-  state.query = els.searchInput.value.trim();
-  loadProducts();
-});
-
-els.searchInput.addEventListener('keydown', event => {
-  if (event.key === 'Enter') {
-    state.query = els.searchInput.value.trim();
-    loadProducts();
+  const reversing = move.x === -direction.x && move.y === -direction.y;
+  if (!reversing) {
+    nextDirection = move;
   }
 });
 
-els.cartToggle.addEventListener('click', () => {
-  els.cartPanel.style.display = els.cartPanel.style.display === 'none' ? 'block' : 'none';
-});
-
-async function init() {
-  await loadHome();
-  await Promise.all([loadProducts(), loadCart()]);
-}
-
-init();
+resetGame();
+draw();
+setInterval(tick, 120);
